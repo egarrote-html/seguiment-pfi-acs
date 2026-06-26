@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seguiment de programació — PFI Auxiliar en Centres Sanitaris</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; padding: 2rem 1rem; }
+  .container { max-width: 680px; margin: 0 auto; }
+  .header { margin-bottom: 2rem; }
+  .header h1 { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .header p { font-size: 13px; color: #666; margin-top: 4px; }
+  .steps { display: flex; align-items: center; gap: 8px; margin-bottom: 1.5rem; }
+  .step-dot { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; color: #999; background: #fff; transition: all 0.2s; }
+  .step-dot.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .step-dot.done { background: #2d7a4f; color: #fff; border-color: #2d7a4f; }
+  .step-label { font-size: 12px; color: #999; }
+  .step-label.active { color: #1a1a1a; font-weight: 500; }
+  .step-sep { flex: 1; height: 1px; background: #ddd; max-width: 40px; }
+  .card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 0.75rem; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 0.75rem; }
+  .field-row.full { grid-template-columns: 1fr; }
+  label { font-size: 13px; color: #555; display: block; margin-bottom: 4px; }
+  input, select, textarea { width: 100%; font-size: 14px; padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; color: #1a1a1a; outline: none; font-family: inherit; transition: border-color 0.15s; }
+  input:focus, select:focus, textarea:focus { border-color: #1a1a1a; background: #fff; }
+  textarea { resize: vertical; min-height: 64px; }
+  .ra-block { border: 1px solid #e5e5e5; border-radius: 10px; padding: 1rem; margin-bottom: 0.75rem; background: #fafafa; }
+  .ra-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; }
+  .ra-title { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .ra-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pct-badge { display: inline-flex; align-items: center; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .pct-neutral { background: #f0f0f0; color: #888; }
+  .pct-ok { background: #dcfce7; color: #166534; }
+  .pct-warn { background: #fef9c3; color: #854d0e; }
+  .pct-err { background: #fee2e2; color: #991b1b; }
+  .pct-over { background: #ede9fe; color: #5b21b6; }
+  .extra-block { margin-top: 0.75rem; display: none; }
+  .extra-block.visible { display: block; }
+  .summary-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 12px; padding: 1.25rem; margin-bottom: 1rem; }
+  .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 0.75rem; }
+  .metric { background: #f5f5f3; border-radius: 8px; padding: 0.75rem 1rem; }
+  .metric .val { font-size: 22px; font-weight: 600; color: #1a1a1a; }
+  .metric .lbl { font-size: 12px; color: #888; margin-top: 2px; }
+  .btn { width: 100%; padding: 11px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; font-family: inherit; }
+  .btn-primary { background: #1a1a1a; color: #fff; }
+  .btn-primary:hover { background: #333; }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+  .btn-back { background: transparent; color: #888; border: 1px solid #ddd; margin-bottom: 0.5rem; }
+  .btn-back:hover { background: #f5f5f3; }
+  .hidden { display: none; }
+  .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); background: #1a1a1a; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; }
+  .success-screen { text-align: center; padding: 3rem 1rem; }
+  .success-screen .icon { font-size: 48px; margin-bottom: 1rem; }
+  .success-screen h2 { font-size: 20px; font-weight: 600; margin-bottom: 0.5rem; }
+  .success-screen p { font-size: 14px; color: #666; }
+  @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } .ra-grid { grid-template-columns: 1fr; } .summary-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>Seguiment de programació</h1>
+    <p>PFI Auxiliar en Centres Sanitaris · Curs 2025–2026</p>
+  </div>
+  <div class="steps" id="steps-bar">
+    <span class="step-dot active" id="s1">1</span>
+    <span class="step-label active" id="sl1">Docent i mòdul</span>
+    <span class="step-sep"></span>
+    <span class="step-dot" id="s2">2</span>
+    <span class="step-label" id="sl2">Resultats d'aprenentatge</span>
+    <span class="step-sep"></span>
+    <span class="step-dot" id="s3">3</span>
+    <span class="step-label" id="sl3">Observacions</span>
+  </div>
+  <div id="page1">
+    <div class="card">
+      <div class="section-label">Dades del docent</div>
+      <div class="field-row">
+        <div><label>Nom i cognoms *</label><input type="text" id="nom" placeholder="p.ex. Maria García"></div>
+        <div><label>Correu electrònic *</label><input type="email" id="email" placeholder="nom@centre.cat"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-label">Mòdul</div>
+      <div class="field-row full">
+        <div><label>Mòdul professional *</label><select id="modul"><option value="">Selecciona el mòdul...</option></select></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="anarPagina2()">Continuar →</button>
+  </div>
+  <div id="page2" class="hidden">
+    <div id="ra-container"></div>
+    <div class="summary-card hidden" id="summary-card">
+      <div class="section-label">Resum del mòdul</div>
+      <div class="summary-grid">
+        <div class="metric"><div class="val" id="sum-prog">—</div><div class="lbl">Hores programades</div></div>
+        <div class="metric"><div class="val" id="sum-real">—</div><div class="lbl">Hores realitzades</div></div>
+        <div class="metric"><div class="val" id="sum-pct">—</div><div class="lbl">% acompliment global</div></div>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="anarPagina1()">← Tornar</button>
+    <button class="btn btn-primary" onclick="anarPagina3()">Continuar →</button>
+  </div>
+  <div id="page3" class="hidden">
+    <div class="card">
+      <div class="section-label">Observacions generals del mòdul</div>
+      <div class="field-row full" style="margin-bottom:0">
+        <div><label>Valoració general i propostes de millora per al proper curs</label><textarea id="observacions" placeholder="Escriu aquí qualsevol observació general sobre el desenvolupament del mòdul..."></textarea></div>
+      </div>
+    </div>
+    <button class="btn btn-back" onclick="anarPagina2()">← Tornar</button>
+    <button class="btn btn-primary" id="btn-enviar" onclick="enviar()">Enviar informe</button>
+  </div>
+  <div id="page-ok" class="hidden">
+    <div class="success-screen">
+      <div class="icon">✅</div>
+      <h2>Informe enviat correctament</h2>
+      <p>Les dades s'han guardat al full de càlcul del centre.<br>Gràcies per completar el seguiment.</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<iframe name="hidden-iframe" style="display:none"></iframe>
+<script>
+const SCRIPT_URL = "https://script.google.com/a/macros/intermunicipal.cat/s/AKfycby5nWVGusAoJlb6yCrnyPLxLkxQXzgAmZufk5O_eV0AwyI23bwmaCWoSiqB9rrFjhrTug/exec";
+const PESTANYA = "PFI-ACS";
+const MODULS = [
+  {"codi":"SA01.2251","nom":"Organització, comunicació i trasllat de documentació, materials i equips d'un centre sanitari","ra":5},
+  {"codi":"SA01.2252","nom":"Mobilització i trasllat de pacients en centres sanitaris","ra":4},
+  {"codi":"SA01.MFG1","nom":"Estratègies i Eines de Comunicació","ra":4},
+  {"codi":"SA01.MFG2","nom":"Entorn social i territorial","ra":4},
+  {"codi":"SA01.MFG3","nom":"Estratègies i Eines Matemàtiques Bàsiques","ra":6},
+  {"codi":"SA01.MFG4","nom":"Incorporació al món professional","ra":7},
+  {"codi":"SA01.MFP039","nom":"Trasllat de pacients en serveis especials d'un centre sanitari","ra":3},
+  {"codi":"SA01.MFP040","nom":"Habilitats Comunicatives en Centres Sanitaris","ra":3},
+  {"codi":"SA01.MFP042","nom":"Primers auxilis","ra":5},
+  {"codi":"SA01.PRL","nom":"PRL","ra":2}
+];
+const sel = document.getElementById("modul");
+MODULS.forEach(m => { const o = document.createElement("option"); o.value = m.codi; o.textContent = m.codi + " · " + m.nom; sel.appendChild(o); });
+function showToast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3000); }
+function setStep(n) { [1,2,3].forEach(i => { const d = document.getElementById("s"+i); const l = document.getElementById("sl"+i); d.className = "step-dot"+(i<n?" done":i===n?" active":""); d.textContent = i<n?"✓":i; l.className = "step-label"+(i===n?" active":""); }); }
+function carregarRA() {
+  const codi = document.getElementById("modul").value;
+  const modul = MODULS.find(m => m.codi === codi);
+  const cont = document.getElementById("ra-container");
+  cont.innerHTML = "";
+  document.getElementById("summary-card").classList.add("hidden");
+  if (!modul) return;
+  for (let i = 1; i <= modul.ra; i++) {
+    const div = document.createElement("div"); div.className = "ra-block";
+    div.innerHTML = '<div class="ra-header"><span class="ra-title">RA '+i+'</span><span class="pct-badge pct-neutral" id="badge-'+i+'">—</span></div><div class="ra-grid"><div><label>Hores programades</label><input type="number" min="0" step="0.5" id="prog-'+i+'" placeholder="0" oninput="calcPct('+i+')"></div><div><label>Hores realitzades</label><input type="number" min="0" step="0.5" id="real-'+i+'" placeholder="0" oninput="calcPct('+i+')"></div></div><div class="extra-block" id="extra-'+i+'"><div style="margin-bottom:0.5rem"><label id="mlbl-'+i+'">Motius</label><textarea id="motius-'+i+'" placeholder="..."></textarea></div><div><label>Proposta de mesures correctores</label><textarea id="mesures-'+i+'" placeholder="Quines mesures es proposen per al proper curs?"></textarea></div></div>';
+    cont.appendChild(div);
+  }
+}
+function calcPct(i) {
+  const prog = parseFloat(document.getElementById("prog-"+i).value)||0;
+  const real = parseFloat(document.getElementById("real-"+i).value)||0;
+  const badge = document.getElementById("badge-"+i);
+  const extra = document.getElementById("extra-"+i);
+  const mlbl = document.getElementById("mlbl-"+i);
+  if (prog===0) { badge.textContent="—"; badge.className="pct-badge pct-neutral"; extra.classList.remove("visible"); actualitzarResum(); return; }
+  const pct = Math.round((real/prog)*100);
+  badge.textContent = pct+"%";
+  if (pct>100) { badge.className="pct-badge pct-over"; extra.classList.add("visible"); mlbl.textContent="Motius de la superació del 100%"; document.getElementById("motius-"+i).placeholder="Per què s'han fet més hores de les programades?"; }
+  else if (pct===100) { badge.className="pct-badge pct-ok"; extra.classList.remove("visible"); }
+  else if (pct>=75) { badge.className="pct-badge pct-warn"; extra.classList.add("visible"); mlbl.textContent="Motius de l'incompliment"; document.getElementById("motius-"+i).placeholder="Per què no s'ha pogut assolir el 100%?"; }
+  else { badge.className="pct-badge pct-err"; extra.classList.add("visible"); mlbl.textContent="Motius de l'incompliment"; document.getElementById("motius-"+i).placeholder="Per què no s'ha pogut assolir el 100%?"; }
+  actualitzarResum();
+}
+function actualitzarResum() {
+  const codi = document.getElementById("modul").value;
+  const modul = MODULS.find(m => m.codi === codi);
+  if (!modul) return;
+  let tp=0, tr=0, c=0;
+  for (let i=1; i<=modul.ra; i++) { const p=parseFloat(document.getElementById("prog-"+i)?.value)||0; const r=parseFloat(document.getElementById("real-"+i)?.value)||0; if(p>0){tp+=p;tr+=r;c++;} }
+  const card = document.getElementById("summary-card");
+  if (c===0) { card.classList.add("hidden"); return; }
+  card.classList.remove("hidden");
+  const pct = Math.round((tr/tp)*100);
+  document.getElementById("sum-prog").textContent = tp+"h";
+  document.getElementById("sum-real").textContent = tr+"h";
+  const pe = document.getElementById("sum-pct");
+  pe.textContent = pct+"%";
+  pe.style.color = pct>=100?"#166534":pct>=75?"#854d0e":"#991b1b";
+}
+function anarPagina1() { document.getElementById("page2").classList.add("hidden"); document.getElementById("page1").classList.remove("hidden"); setStep(1); }
+function anarPagina2() {
+  const nom=document.getElementById("nom").value.trim();
+  const email=document.getElementById("email").value.trim();
+  const modul=document.getElementById("modul").value;
+  if (!nom||!email||!modul) { showToast("⚠️ Omple tots els camps abans de continuar."); return; }
+  carregarRA();
+  document.getElementById("page1").classList.add("hidden");
+  document.getElementById("page2").classList.remove("hidden");
+  setStep(2); window.scrollTo(0,0);
+}
+function anarPagina3() {
+  const codi=document.getElementById("modul").value;
+  const modul=MODULS.find(m=>m.codi===codi);
+  let ok=false;
+  for (let i=1;i<=modul.ra;i++) { if((parseFloat(document.getElementById("prog-"+i).value)||0)>0){ok=true;break;} }
+  if (!ok) { showToast("⚠️ Introdueix les hores d'almenys un RA."); return; }
+  document.getElementById("page2").classList.add("hidden");
+  document.getElementById("page3").classList.remove("hidden");
+  setStep(3); window.scrollTo(0,0);
+}
+function enviar() {
+  const btn=document.getElementById("btn-enviar");
+  btn.disabled=true; btn.textContent="Enviant...";
+  const codi=document.getElementById("modul").value;
+  const modul=MODULS.find(m=>m.codi===codi);
+  const ras=[];
+  for (let i=1;i<=modul.ra;i++) {
+    const prog=parseFloat(document.getElementById("prog-"+i).value)||0;
+    const real=parseFloat(document.getElementById("real-"+i).value)||0;
+    const pct=prog>0?Math.round((real/prog)*100):0;
+    ras.push({num:"RA "+i, prog, real, pct, motius:document.getElementById("motius-"+i)?.value||"", mesures:document.getElementById("mesures-"+i)?.value||""});
+  }
+  const payload={nom:document.getElementById("nom").value.trim(), email:document.getElementById("email").value.trim(), curs:"", modul:codi+" · "+modul.nom, observacions:document.getElementById("observacions").value, pestanya:PESTANYA, ras};
+  const form = document.createElement("form");
+  form.method = "POST"; form.action = SCRIPT_URL; form.target = "hidden-iframe";
+  const input = document.createElement("input");
+  input.type = "hidden"; input.name = "data"; input.value = JSON.stringify(payload);
+  form.appendChild(input); document.body.appendChild(form); form.submit(); document.body.removeChild(form);
+  setTimeout(() => {
+    document.getElementById("page3").classList.add("hidden");
+    document.getElementById("steps-bar").classList.add("hidden");
+    document.getElementById("page-ok").classList.remove("hidden");
+    window.scrollTo(0,0);
+  }, 2000);
+}
+</script>
+</body>
+</html>
